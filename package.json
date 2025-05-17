@@ -1,5 +1,5 @@
 {
-  "name": "fodinha-full-ui-server",
+  "name": "fodinha-server",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
