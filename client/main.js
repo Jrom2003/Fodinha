@@ -23,14 +23,16 @@ joinBtn.onclick = () => {
 
 socket.on("deal-cards", ({ cards, round }) => {
   cardArea.innerHTML = "";
+  selectedCard = null;
+
   cards.forEach((card, idx) => {
     const div = document.createElement("div");
     div.className = "card";
-    div.innerText = (round === 1) ? "???" : card;
+    div.innerText = card;
     div.onclick = () => {
       document.querySelectorAll(".card").forEach(c => c.classList.remove("selected"));
       div.classList.add("selected");
-      selectedCard = round === 1 ? idx : card;
+      selectedCard = idx;
       playBtn.classList.remove("hidden");
     };
     cardArea.appendChild(div);
@@ -38,7 +40,7 @@ socket.on("deal-cards", ({ cards, round }) => {
 });
 
 playBtn.onclick = () => {
-  if (selectedCard != null) {
+  if (selectedCard !== null) {
     socket.emit("play-card", selectedCard);
     playBtn.classList.add("hidden");
   }
