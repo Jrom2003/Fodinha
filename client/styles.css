@@ -1,5 +1,4 @@
 body { font-family: sans-serif; padding: 20px; background: #f2f2f2; }
-#lobby, #game { max-width: 400px; margin: auto; text-align: center; }
 input, button { padding: 10px; margin: 5px; width: 80%; }
 #cardArea { display: flex; flex-wrap: wrap; justify-content: center; margin-top: 15px; }
 .card { padding: 10px 15px; margin: 5px; background: white; border: 1px solid #aaa; cursor: pointer; }
