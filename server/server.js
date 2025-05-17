@@ -24,23 +24,32 @@ function shuffleDeck() {
 let rooms = {};
 
 io.on('connection', (socket) => {
-  console.log('user connected:', socket.id);
+  console.log('User connected:', socket.id);
 
   socket.on('join-room', (room, name) => {
     socket.join(room);
-    if (!rooms[room]) rooms[room] = { players: [], deck: [], round: 1 };
-    rooms[room].players.push({ id: socket.id, name, lives: 3, tricks: 0 });
+    if (!rooms[room]) {
+      rooms[room] = { players: [], deck: [], round: 0 };
+    }
+
+    const player = { id: socket.id, name, lives: 3, tricks: 0, hand: [], playedCard: null };
+    rooms[room].players.push(player);
+
     startRound(room);
   });
 
-  socket.on('play-card', (selection) => {
+  socket.on('play-card', (index) => {
     for (const room in rooms) {
       const player = rooms[room].players.find(p => p.id === socket.id);
-      if (!player || player.cardPlayed) continue;
-      const card = Array.isArray(player.hand) ? player.hand[selection] : selection;
-      player.playedCard = card;
-      player.cardPlayed = true;
-      resolveTrick(room);
+      if (!player || !player.hand.length || index >= player.hand.length) return;
+      player.playedCard = player.hand[index];
+    }
+
+    for (const room in rooms) {
+      const allPlayed = rooms[room].players.every(p => p.playedCard);
+      if (allPlayed) {
+        resolveTrick(room);
+      }
     }
   });
 
@@ -53,36 +62,34 @@ io.on('connection', (socket) => {
 
 function startRound(room) {
   const roomData = rooms[room];
+  roomData.round++;
   roomData.deck = shuffleDeck();
-  const round = roomData.round;
 
   roomData.players.forEach(p => {
     p.hand = [roomData.deck.pop()];
-    p.cardPlayed = false;
-    p.tricks = 0;
+    p.playedCard = null;
+  });
 
-    let cardsToShow;
-    if (round === 1 && roomData.players.length > 1) {
-      cardsToShow = roomData.players.map(o => o.id === p.id ? "???" : o.hand[0]);
-    } else {
-      cardsToShow = p.hand;
-    }
-
-    io.to(p.id).emit("deal-cards", { cards: cardsToShow, round });
+  roomData.players.forEach(p => {
+    const cardView = roomData.round === 1 && roomData.players.length > 1
+      ? roomData.players.map(o => o.id === p.id ? "???" : o.hand[0])
+      : p.hand;
+    io.to(p.id).emit("deal-cards", { cards: cardView, round: roomData.round });
     io.to(p.id).emit("update-info", { lives: p.lives, tricks: p.tricks });
   });
 }
 
 function resolveTrick(room) {
   const roomData = rooms[room];
-  const winner = roomData.players[0]; // always win in solo mode
+  const winner = roomData.players[Math.floor(Math.random() * roomData.players.length)];
   winner.tricks++;
+
   roomData.players.forEach(p => {
-    p.cardPlayed = false;
-    p.playedCard = null;
+    p.cardPlayed = null;
     io.to(p.id).emit("update-info", { lives: p.lives, tricks: p.tricks });
-    io.to(p.id).emit("game-message", `You won the trick!`);
+    io.to(p.id).emit("game-message", `${winner.name} won the trick!`);
   });
+
   setTimeout(() => startRound(room), 2000);
 }
 
